@@ -26,26 +26,20 @@ export default function Calculator() {
     const [entryText, setEntryText] = useState<string | undefined>(undefined)
     const [isEntryNegative, setIsEntryNegative] = useState<boolean>(false)
 
-    function finalizeEntryText() {
-        let entryWithNegative = entryText ?? '0'
-        if (isEntryNegative && entryText)
-            entryWithNegative = '-' + entryWithNegative
-
-        return entryWithNegative
-    }
+    let finalizedEntryText = entryText ?? '0'
+    if (isEntryNegative && entryText)
+        finalizedEntryText = '-' + finalizedEntryText
 
     function commitOperand() {
-        const num = parseFloat(finalizeEntryText())
-        if (!operandLeft) {
-            // If the left operand is undefined, this becomes that
-            setOperandLeft(num)
-        } else if (!operandRight) {
-            // If the left operand is defined and the right is not, this becomes the right
-            setOperandRight(num)
-        } else if (operator) {
-            // If both are defined as well as an operator, evaluate the function and set the result to the left
-            evaluate()
-        }
+        const num = parseFloat(finalizedEntryText)
+        if (operandLeft && operator) {
+            // If we already have left and operator, we're ready to go
+            const result = evaluate(operandLeft, operandRight ?? num, operator)
+            setOperandLeft(result)
+            setOperandRight(undefined)
+            setOperator(undefined)
+        } else setOperandLeft(num)
+
         setEntryText(undefined)
         setIsEntryNegative(false)
     }
@@ -55,57 +49,47 @@ export default function Calculator() {
         setOperator(operator)
     }
 
-    function evaluate() {
-        if (operandLeft && operandRight && operator) {
-            let result
-            switch (operator) {
-                case 'mod':
-                    result = operandLeft % operandRight
-                    break
-                case 'div':
-                    result = operandLeft / operandRight
-                    break
-                case 'mult':
-                    result = operandLeft / operandRight
-                    break
-                case 'minus':
-                    result = operandLeft - operandRight
-                    break
-                case 'plus':
-                    result = operandLeft + operandRight
-            }
-            setOperandLeft(result)
-            setOperandRight(undefined)
-            setOperator(undefined)
-            setEntryText(undefined)
-            setIsEntryNegative(false)
+    function evaluate(
+        operandLeft: number,
+        operandRight: number,
+        operator: Operator
+    ): number {
+        let result
+        switch (operator) {
+            case 'mod':
+                result = operandLeft % operandRight
+                break
+            case 'div':
+                result = operandLeft / operandRight
+                break
+            case 'mult':
+                result = operandLeft / operandRight
+                break
+            case 'minus':
+                result = operandLeft - operandRight
+                break
+            case 'plus':
+                result = operandLeft + operandRight
         }
+        return result
     }
 
-    function calculateDisplayText(): string {
-        // default: entry text
-        // if we have a committed left operand, it implies we also have an operator
-        // if we have a committed right operand, we shouldn't get here becuase we should evaluate
-        let displayText = ''
-        const entryWithNegative = finalizeEntryText()
-        if (operandLeft) displayText += operandLeft
-        else return entryWithNegative
+    // default: entry text
+    // if we have a committed left operand, it implies we also have an operator
+    // if we have a committed right operand, we shouldn't get here becuase we should evaluate
+    let displayText = ''
+    if (operandLeft) displayText += operandLeft
+    else displayText = finalizedEntryText
 
-        if (operator) displayText = displayText + operatorDisplay[operator]
-        else return displayText
-
+    if (operator) {
+        displayText = displayText + operatorDisplay[operator]
         if (operandRight) displayText += operandRight
-        else displayText += entryWithNegative ?? '0'
-
-        return displayText
+        else displayText += finalizedEntryText
     }
 
     return (
         <div>
-            <Display
-                text={calculateDisplayText()}
-                handleInput={(text: string) => {}}
-            />
+            <Display text={displayText} handleInput={() => {}} />
             <div>
                 <Button
                     color="light"
@@ -251,7 +235,6 @@ export default function Calculator() {
                     text="="
                     handleButtonPress={() => {
                         commitOperand()
-                        evaluate()
                     }}
                 />
             </div>
