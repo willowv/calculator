@@ -19,9 +19,6 @@ export default function Calculator() {
     const [operandLeft, setOperandLeft] = useState<number | undefined>(
         undefined
     )
-    const [operandRight, setOperandRight] = useState<number | undefined>(
-        undefined
-    )
     const [operator, setOperator] = useState<Operator | undefined>(undefined)
     const [entryText, setEntryText] = useState<string | undefined>(undefined)
     const [isEntryNegative, setIsEntryNegative] = useState<boolean>(false)
@@ -30,22 +27,34 @@ export default function Calculator() {
     if (isEntryNegative && entryText)
         finalizedEntryText = '-' + finalizedEntryText
 
-    function commitOperand() {
+    // Returns result
+    function commitOperand(): number | undefined {
         const num = parseFloat(finalizedEntryText)
         if (operandLeft && operator) {
             // If we already have left and operator, we're ready to go
-            const result = evaluate(operandLeft, operandRight ?? num, operator)
-            setOperandLeft(result)
-            setOperandRight(undefined)
-            setOperator(undefined)
-        } else setOperandLeft(num)
+            const result = evaluate(operandLeft, num, operator)
 
-        setEntryText(undefined)
-        setIsEntryNegative(false)
+            const isNegative = result < 0
+            setEntryText('' + Math.abs(result))
+            setIsEntryNegative(isNegative)
+            setOperandLeft(undefined)
+            setOperator(undefined)
+            return result
+        } else {
+            setOperandLeft(num)
+            setEntryText(undefined)
+            setIsEntryNegative(false)
+            return undefined
+        }
     }
 
     function commitOperator(operator: Operator) {
-        commitOperand()
+        const result = commitOperand()
+        if (result != undefined) {
+            setOperandLeft(result)
+            setEntryText(undefined)
+            setIsEntryNegative(false)
+        }
         setOperator(operator)
     }
 
@@ -63,7 +72,7 @@ export default function Calculator() {
                 result = operandLeft / operandRight
                 break
             case 'mult':
-                result = operandLeft / operandRight
+                result = operandLeft * operandRight
                 break
             case 'minus':
                 result = operandLeft - operandRight
@@ -83,8 +92,7 @@ export default function Calculator() {
 
     if (operator) {
         displayText = displayText + operatorDisplay[operator]
-        if (operandRight) displayText += operandRight
-        else displayText += finalizedEntryText
+        displayText += finalizedEntryText
     }
 
     return (
@@ -96,9 +104,9 @@ export default function Calculator() {
                     text="AC"
                     handleButtonPress={() => {
                         setOperandLeft(undefined)
-                        setOperandRight(undefined)
                         setOperator(undefined)
                         setEntryText(undefined)
+                        setIsEntryNegative(false)
                     }}
                 />
                 <Button
@@ -145,7 +153,13 @@ export default function Calculator() {
                         setEntryText((entryText ?? '') + '9')
                     }}
                 />
-                <Button color="orange" text="X" handleButtonPress={() => {}} />
+                <Button
+                    color="orange"
+                    text="X"
+                    handleButtonPress={() => {
+                        commitOperator('mult')
+                    }}
+                />
             </div>
             <div>
                 <Button
